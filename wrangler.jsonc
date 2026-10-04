@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "acses-voting-app",
+  "name": "acses",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-04",
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env", "global_fetch_strictly_public"],
@@ -11,7 +11,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "acses-voting-app"
+      "service": "acses"
     }
   ],
   "r2_buckets": [
