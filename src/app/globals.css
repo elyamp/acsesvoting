@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --background: #fefcf5;
+  --foreground: #171717;
+  --card: #f5fbf4;
+  --surface: #fdf7ed;
+  --line: #e5e5e5;
+  --muted: #171616;
+  --faint: #2c2b2b;
+  --accent: #034320;
+  --accent-soft: rgba(227, 168, 50, 0.15); /* dijon */
+  --accent-contrast: #f7b839; /* dijon */
+  --accent-line: rgba(227, 168, 50, 0.25);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.1);
+  --pop-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 40px -16px rgba(0, 0, 0, 0.18);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #252424;
+  --foreground: #d3d3d3;
+  --card: #0e140e;
+  --surface: #0e140e;
+  --line: #232923;
+  --muted: #cacaca;
+  --faint: #c7c5c5;
+  --accent: #c18f11; /* dijon */
+  --accent-soft: rgba(227, 168, 50, 0.023);
+  --accent-contrast: #e0a81b; /* dijon */
+  --accent-line: rgba(227, 168, 50, 0.3);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --pop-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+}
+
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-line: var(--accent-line);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+  --shadow-card: var(--card-shadow);
+  --shadow-pop: var(--pop-shadow);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-feature-settings: "ss01", "cv01";
+}
+
+::selection {
+  background: rgba(227, 168, 50, 0.25);
+  color: var(--foreground);
+}
+
+.dark ::selection {
+  background: rgba(227, 168, 50, 0.35);
+}
+
+.hero-mesh {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 20% 0%, rgba(19, 85, 49, 0.08), transparent),
+    radial-gradient(ellipse 50% 40% at 85% 10%, rgba(19, 85, 49, 0.05), transparent),
+    radial-gradient(ellipse 40% 40% at 60% 90%, rgba(227, 168, 50, 0.08), transparent);
+}
+
+.dark .hero-mesh {
+  background-image:
+    radial-gradient(ellipse 60% 50% at 20% 0%, rgba(227, 168, 50, 0.12), transparent),
+    radial-gradient(ellipse 50% 40% at 85% 10%, rgba(255, 255, 255, 0.03), transparent),
+    radial-gradient(ellipse 40% 40% at 60% 90%, rgba(227, 168, 50, 0.06), transparent);
+}
+
+.grid-lines {
+  background-image:
+    linear-gradient(rgba(18, 32, 24, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 32, 24, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, black, transparent);
+}
+
+.dark .grid-lines {
+  background-image:
+    linear-gradient(rgba(238, 244, 239, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(238, 244, 239, 0.04) 1px, transparent 1px);
+}
+
+.grain {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+.dark .grain {
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-check {
+  animation: check-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-check {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
