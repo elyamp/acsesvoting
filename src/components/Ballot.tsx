@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { castBallot } from "@/lib/actions/vote";
 import { Alert, Button, Card, Logo } from "@/components/ui";
@@ -14,21 +14,101 @@ export type BallotPosition = {
 export default function Ballot({
   electionId,
   electionTitle,
+  endsAt,
   positions,
 }: {
   electionId: string;
   electionTitle: string;
+  endsAt: string | null;
   positions: BallotPosition[];
 }) {
   const router = useRouter();
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [votingOpen, setVotingOpen] = useState(true);
+  const [statusUnavailable, setStatusUnavailable] = useState(true);
+  const [statusChecked, setStatusChecked] = useState(false);
   const [pending, startTransition] = useTransition();
+  const controlsDisabled = statusUnavailable || !statusChecked;
 
   const allSelected = positions.every((p) => selections[p.id]);
 
+  useEffect(() => {
+    let active = true;
+    let statusTimer: ReturnType<typeof setTimeout> | undefined;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
+    const controller = new AbortController();
+
+    function lockBallot() {
+      if (!active) return;
+      setVotingOpen(false);
+      setConfirming(false);
+      setSelections({});
+      setError(null);
+      router.refresh();
+    }
+
+    async function refreshVotingStatus() {
+      try {
+        const response = await fetch(`/api/elections/${encodeURIComponent(electionId)}/voting-status`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Could not verify whether voting is still open.");
+        const payload: unknown = await response.json();
+        if (payload === null || typeof payload !== "object" || !("open" in payload) || typeof payload.open !== "boolean") {
+          throw new Error("The voting status response was invalid.");
+        }
+
+        if (!active) return;
+        setStatusUnavailable(false);
+        setStatusChecked(true);
+        if (!payload.open) {
+          lockBallot();
+          return;
+        }
+        statusTimer = setTimeout(refreshVotingStatus, 1_000);
+      } catch (cause) {
+        if (!active || controller.signal.aborted) return;
+        setStatusUnavailable(true);
+        setError(cause instanceof Error ? cause.message : "Could not verify whether voting is still open.");
+        statusTimer = setTimeout(refreshVotingStatus, 1_000);
+      }
+    }
+
+    if (endsAt) {
+      const remaining = new Date(endsAt).getTime() - Date.now();
+      closeTimer = setTimeout(() => void refreshVotingStatus(), Math.max(0, remaining));
+    }
+    void refreshVotingStatus();
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (statusTimer) clearTimeout(statusTimer);
+      if (closeTimer) clearTimeout(closeTimer);
+    };
+  }, [electionId, endsAt, router]);
+
+  if (!votingOpen) {
+    return (
+      <div role="status">
+        <Card className="mx-auto max-w-xl p-8 text-center">
+          <h2 className="font-display text-2xl">Voting is closed</h2>
+          <p className="mt-2 text-sm text-muted">
+            The election has ended. Ballots can no longer be started or submitted.
+          </p>
+          <Button className="mt-5" variant="secondary" onClick={() => router.refresh()}>
+            Refresh
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   function submit() {
+    if (!votingOpen || controlsDisabled) return;
     setError(null);
     startTransition(async () => {
       const result = await castBallot({
@@ -41,6 +121,11 @@ export default function Ballot({
       } else {
         setConfirming(false);
         setError(result.error || "Could not submit your ballot.");
+        if (result.error?.toLowerCase().includes("closed") || result.error?.toLowerCase().includes("not open")) {
+          setVotingOpen(false);
+          setSelections({});
+          router.refresh();
+        }
       }
     });
   }
@@ -97,10 +182,10 @@ export default function Ballot({
               </div>
             )}
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button variant="secondary" onClick={() => setConfirming(false)} disabled={pending} className="w-full sm:w-auto">
+              <Button variant="secondary" onClick={() => setConfirming(false)} disabled={pending || controlsDisabled} className="w-full sm:w-auto">
                 Go back
               </Button>
-              <Button onClick={submit} disabled={pending} className="w-full flex-1 shadow-lg shadow-emerald-500/20">
+              <Button onClick={submit} disabled={pending || controlsDisabled} className="w-full flex-1 shadow-lg shadow-emerald-500/20">
                 {pending ? "Submitting securely..." : "Submit my vote"}
               </Button>
             </div>
@@ -113,6 +198,9 @@ export default function Ballot({
   return (
     <div className="ballot-layout space-y-8">
       {error && <Alert kind="error">{error}</Alert>}
+      {!statusChecked && !statusUnavailable && (
+        <Alert kind="info">Checking whether voting is still open...</Alert>
+      )}
       <div className="ballot-sheet">
         <header className="ballot-masthead">
           <div className="ballot-brand">
@@ -149,10 +237,12 @@ export default function Ballot({
                     <button
                       key={c.id}
                       type="button"
+                      disabled={controlsDisabled}
                       aria-pressed={selected}
-                      onClick={() =>
-                        setSelections((s) => ({ ...s, [position.id]: selected ? "" : c.id }))
-                      }
+                      onClick={() => {
+                        if (!votingOpen || controlsDisabled) return;
+                        setSelections((s) => ({ ...s, [position.id]: selected ? "" : c.id }));
+                      }}
                       className={`ballot-candidate flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-200 ${
                         selected
                           ? "border-accent bg-accent-soft shadow-md ring-1 ring-accent"
@@ -217,7 +307,13 @@ export default function Ballot({
             </span>{" "}
             positions selected — {electionTitle}
           </div>
-          <Button disabled={!allSelected || pending} onClick={() => setConfirming(true)}>
+          <Button
+            disabled={!allSelected || pending || controlsDisabled}
+            onClick={() => {
+              if (controlsDisabled) return;
+              setConfirming(true);
+            }}
+          >
             Review &amp; submit
           </Button>
         </Card>

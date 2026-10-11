@@ -24,7 +24,7 @@ export default function ElectionManager({
   election,
   isSuperAdmin,
 }: {
-  election: { id: string; title: string; status: string };
+  election: { id: string; title: string; status: string; startsAt: Date | null };
   isSuperAdmin: boolean;
 }) {
   const router = useRouter();
@@ -49,6 +49,11 @@ export default function ElectionManager({
   return (
     <div className="space-y-4">
       {error && <Alert kind="error">{error}</Alert>}
+      {isDraft && (
+        <p className="text-sm text-muted">
+          Set up every position with at least two candidates, add candidate photos, choose automatic or manual closing, then open voting.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {election.status !== "OPEN" && (
           <Button
@@ -58,7 +63,10 @@ export default function ElectionManager({
                 setError("Closed elections cannot be reopened.");
                 return;
               }
-              if (window.confirm(`Open "${election.title}" for voting? Students will be able to vote immediately.`)) {
+              const openingMessage = election.startsAt
+                ? `Open "${election.title}" now? Students can vote from the scheduled start time.`
+                : `Open "${election.title}" for voting now? Students will be able to vote immediately.`;
+              if (window.confirm(openingMessage)) {
                 run(() => setElectionStatus(election.id, "OPEN"));
               }
             }}

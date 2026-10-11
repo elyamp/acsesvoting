@@ -6,6 +6,7 @@ import { getSession, hasValidRequestOrigin } from "@/lib/auth";
 import { rateLimit } from "@/lib/ratelimit";
 import { audit } from "@/lib/audit";
 import { serializeBallot } from "@/lib/ballot-integrity";
+import { closeExpiredElections } from "@/lib/election-scheduler";
 import { castBallotSchema, firstError } from "@/lib/validation";
 import type { ActionResult } from "./auth";
 
@@ -25,6 +26,8 @@ export async function castBallot(input: unknown): Promise<ActionResult> {
   const parsed = castBallotSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const { electionId, selections } = parsed.data;
+  const now = new Date();
+  await closeExpiredElections(now);
 
   const election = await prisma.election.findUnique({
     where: { id: electionId },
@@ -33,11 +36,10 @@ export async function castBallot(input: unknown): Promise<ActionResult> {
   if (!election || election.status !== "OPEN") {
     return { ok: false, error: "This election is not open for voting." };
   }
-  const now = new Date();
   if (election.startsAt && now < election.startsAt) {
     return { ok: false, error: "Voting has not started yet." };
   }
-  if (election.endsAt && now > election.endsAt) {
+  if (election.endsAt && now >= election.endsAt) {
     return { ok: false, error: "Voting has closed." };
   }
 
@@ -82,6 +84,20 @@ export async function castBallot(input: unknown): Promise<ActionResult> {
 
   try {
     await prisma.$transaction(async (tx) => {
+      const transactionTime = new Date();
+      const electionOpen = await tx.election.updateMany({
+        where: {
+          id: electionId,
+          status: "OPEN",
+          AND: [
+            { OR: [{ startsAt: null }, { startsAt: { lte: transactionTime } }] },
+            { OR: [{ endsAt: null }, { endsAt: { gt: transactionTime } }] },
+          ],
+        },
+        data: { status: "OPEN" },
+      });
+      if (electionOpen.count === 0) throw new Error("ELECTION_CLOSED");
+
       // Atomic one-vote-per-voter guard
       const claimed = await tx.voter.updateMany({
         where: { id: voter.id, hasVoted: false },
@@ -107,6 +123,9 @@ export async function castBallot(input: unknown): Promise<ActionResult> {
   } catch (e) {
     if (e instanceof Error && e.message === "ALREADY_VOTED") {
       return { ok: false, error: "You have already voted in this election." };
+    }
+    if (e instanceof Error && e.message === "ELECTION_CLOSED") {
+      return { ok: false, error: "Voting is closed. The ballot was not submitted." };
     }
     throw e;
   }

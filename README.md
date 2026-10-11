@@ -114,10 +114,11 @@ This deployment does not copy `prisma/dev.db` or existing candidate images. If m
 
 1. Sign in at `/login` (Admin tab) as the superadmin.
 2. **Voters** → add students one by one with their class or bulk import up to 300 students for one class at a time. Upload `.xlsx` workbooks or `.csv` files; for workbooks, choose a worksheet, review or correct the detected header and name/index/email columns, and inspect row validation before importing. Invalid rows and duplicates within the file are skipped; existing register entries are reported in the import summary. Uploads are limited to 5 MB. You can also paste CSV rows in `Full Name, Index Number, Email` order. Supported classes are CE 1–4, CY 1–4, IS 1–4, and Robotics 1–4. Index numbers use the format `FCM.00.000.000.00`; email addresses must use an allowed school domain.
-3. **Elections** → create an election, then open its detail page to add positions (President, Secretary, Financial Secretary, Women's Commissioner, ...) and at least 2 candidates per position.
-4. Click **Open voting** (positions/candidates lock once open).
-5. Students go to `/activate`. Their index number and school email must match the voter register; they receive a 6-digit code, set a password, and vote at `/vote`.
-6. Watch live collation under **Results**. Results and CSV export are available only when signed ballot records pass integrity verification. Click **Close voting** to finalize — winners are then highlighted.
+3. **Elections** → create an election and set its start time and closing method. Choose automatic closing and a date/time, or leave it to be closed manually. Times are entered in the administrator's local timezone.
+4. Open the election detail page, add each position (President, Secretary, Financial Secretary, Women's Commissioner, ...), add at least 2 candidates to each position, and upload candidate photos.
+5. Click **Open voting** when the ballot is ready. Positions and candidates lock once voting opens. An administrator can also click **Close voting** at any time; scheduled elections close automatically at their selected end time. Open student ballots check the election status continuously; when it closes, candidate selection and submission are disabled and any unsubmitted selections are cleared. The server also refuses any ballot transaction after closure.
+6. Students go to `/activate`. Their index number and school email must match the voter register; they receive a 6-digit code, set a password, and vote at `/vote`.
+7. Watch live collation under **Results**. Results and CSV export are available only when signed ballot records pass integrity verification. Winners are highlighted after voting closes.
 
 ## Default accounts (dev seed)
 

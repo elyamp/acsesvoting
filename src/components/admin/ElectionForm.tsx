@@ -22,13 +22,21 @@ export default function ElectionForm({
   const [description, setDescription] = useState(election?.description ?? "");
   const [startsAt, setStartsAt] = useState(toLocalInput(election?.startsAt));
   const [endsAt, setEndsAt] = useState(toLocalInput(election?.endsAt));
+  const [closeMode, setCloseMode] = useState<"scheduled" | "manual">(
+    election?.endsAt ? "scheduled" : "manual",
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const input = { title, description, startsAt, endsAt };
+    const input = {
+      title,
+      description,
+      startsAt: startsAt ? new Date(startsAt).toISOString() : "",
+      endsAt: closeMode === "scheduled" && endsAt ? new Date(endsAt).toISOString() : "",
+    };
     startTransition(async () => {
       const result = election
         ? await updateElection(election.id, input)
@@ -43,6 +51,7 @@ export default function ElectionForm({
           setDescription("");
           setStartsAt("");
           setEndsAt("");
+          setCloseMode("manual");
         }
       } else {
         setError(result.error || "Could not save election.");
@@ -74,16 +83,54 @@ export default function ElectionForm({
             placeholder="Annual election of departmental executives"
           />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="startsAt">Voting opens (optional)</Label>
-            <Input id="startsAt" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="endsAt">Voting closes (optional)</Label>
-            <Input id="endsAt" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
-          </div>
+        <div>
+          <Label htmlFor="startsAt">Voting opens (optional)</Label>
+          <Input id="startsAt" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          <p className="mt-1 text-xs text-muted">Times use your device&apos;s local timezone.</p>
         </div>
+        <fieldset className="space-y-3 rounded-xl border border-line p-4">
+          <legend className="px-1 text-sm font-semibold">How should voting end?</legend>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="radio"
+              name="closeMode"
+              value="scheduled"
+              checked={closeMode === "scheduled"}
+              onChange={() => setCloseMode("scheduled")}
+              className="mt-1 accent-[var(--accent)]"
+            />
+            <span>
+              <span className="block font-medium">Close automatically at a scheduled time</span>
+              <span className="mt-1 block text-xs text-muted">Voting ends at the selected local time. The cutoff is enforced exactly; the election status updates automatically shortly afterward.</span>
+            </span>
+          </label>
+          {closeMode === "scheduled" && (
+            <div className="pl-7">
+              <Label htmlFor="endsAt">Voting closes</Label>
+              <Input
+                id="endsAt"
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                required
+              />
+            </div>
+          )}
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="radio"
+              name="closeMode"
+              value="manual"
+              checked={closeMode === "manual"}
+              onChange={() => setCloseMode("manual")}
+              className="mt-1 accent-[var(--accent)]"
+            />
+            <span>
+              <span className="block font-medium">Close manually</span>
+              <span className="mt-1 block text-xs text-muted">An administrator can close voting at any time using the Close voting button.</span>
+            </span>
+          </label>
+        </fieldset>
         {error && <Alert kind="error">{error}</Alert>}
         <Button type="submit" disabled={pending}>
           {pending ? "Saving..." : election ? "Save changes" : "Create election"}

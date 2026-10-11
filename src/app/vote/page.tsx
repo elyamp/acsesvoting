@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { closeExpiredElections } from "@/lib/election-scheduler";
 import LogoutButton from "@/components/LogoutButton";
 import Ballot from "@/components/Ballot";
 import { Card, Logo } from "@/components/ui";
@@ -15,6 +16,7 @@ export default async function VotePage() {
   if (!session) redirect("/login");
   if (session.kind === "admin") redirect("/admin");
 
+  await closeExpiredElections();
   const voter = await prisma.voter.findUnique({ where: { id: session.sub } });
   if (!voter) redirect("/login");
   if (voter.hasVoted) redirect("/voted");
@@ -108,6 +110,7 @@ export default async function VotePage() {
             <Ballot
               electionId={election.id}
               electionTitle={election.title}
+              endsAt={election.endsAt?.toISOString() ?? null}
               positions={election.positions.map((p) => ({
                 id: p.id,
                 name: p.name,

@@ -44,7 +44,12 @@ export default async function ElectionDetailPage(props: PageProps<"/admin/electi
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           <ElectionManager
-            election={{ id: election.id, title: election.title, status: election.status }}
+            election={{
+              id: election.id,
+              title: election.title,
+              status: election.status,
+              startsAt: election.startsAt,
+            }}
             isSuperAdmin={session.role === "SUPERADMIN"}
           />
           <PositionManager
@@ -65,7 +70,12 @@ export default async function ElectionDetailPage(props: PageProps<"/admin/electi
         </div>
 
         <div className="space-y-6">
-          {isDraft && <ElectionForm election={election} />}
+          {isDraft && (
+            <ElectionForm
+              key={`${election.id}:${election.title}:${election.description ?? ""}:${election.startsAt?.getTime() ?? ""}:${election.endsAt?.getTime() ?? ""}`}
+              election={election}
+            />
+          )}
           {!isDraft && (
             <Card>
               <h3 className="mb-2 font-semibold">Election details</h3>
@@ -85,6 +95,11 @@ export default async function ElectionDetailPage(props: PageProps<"/admin/electi
               </dl>
               <p className="mt-3 text-xs text-muted">
                 Details can only be edited while the election is a draft.
+                {election.status === "OPEN"
+                  ? election.endsAt
+                    ? " Voting closes automatically at the scheduled time."
+                    : " Remember to close voting manually."
+                  : " This election is closed and cannot be reopened."}
               </p>
             </Card>
           )}

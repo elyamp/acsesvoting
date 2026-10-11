@@ -50,6 +50,23 @@ function revalidateAdmin() {
   revalidatePath("/vote");
 }
 
+function parseElectionDates(startsAt: string, endsAt: string) {
+  const startDate = startsAt ? new Date(startsAt) : null;
+  const endDate = endsAt ? new Date(endsAt) : null;
+
+  if (
+    (startDate && !Number.isFinite(startDate.getTime())) ||
+    (endDate && !Number.isFinite(endDate.getTime()))
+  ) {
+    return { ok: false as const, error: "Enter valid voting start and end times." };
+  }
+  if (startDate && endDate && startDate >= endDate) {
+    return { ok: false as const, error: "Start time must be before end time." };
+  }
+
+  return { ok: true as const, startsAt: startDate, endsAt: endDate };
+}
+
 // ---------- Elections ----------
 
 export async function createElection(input: unknown): Promise<ActionResult> {
@@ -58,17 +75,15 @@ export async function createElection(input: unknown): Promise<ActionResult> {
   const parsed = electionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const { title, description, startsAt, endsAt } = parsed.data;
-
-  if (startsAt && endsAt && new Date(startsAt) >= new Date(endsAt)) {
-    return { ok: false, error: "Start time must be before end time." };
-  }
+  const dates = parseElectionDates(startsAt ?? "", endsAt ?? "");
+  if (!dates.ok) return dates;
 
   const election = await prisma.election.create({
     data: {
       title,
       description: description || null,
-      startsAt: startsAt ? new Date(startsAt) : null,
-      endsAt: endsAt ? new Date(endsAt) : null,
+      startsAt: dates.startsAt,
+      endsAt: dates.endsAt,
     },
   });
   await audit("ELECTION_CREATED", { userId: auth.session.sub, electionId: election.id, detail: title });
@@ -82,18 +97,16 @@ export async function updateElection(electionId: string, input: unknown): Promis
   const parsed = electionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const { title, description, startsAt, endsAt } = parsed.data;
-
-  if (startsAt && endsAt && new Date(startsAt) >= new Date(endsAt)) {
-    return { ok: false, error: "Start time must be before end time." };
-  }
+  const dates = parseElectionDates(startsAt ?? "", endsAt ?? "");
+  if (!dates.ok) return dates;
 
   await prisma.election.update({
     where: { id: electionId },
     data: {
       title,
       description: description || null,
-      startsAt: startsAt ? new Date(startsAt) : null,
-      endsAt: endsAt ? new Date(endsAt) : null,
+      startsAt: dates.startsAt,
+      endsAt: dates.endsAt,
     },
   });
   await audit("ELECTION_UPDATED", { userId: auth.session.sub, electionId, detail: title });
@@ -112,6 +125,15 @@ export async function setElectionStatus(electionId: string, status: "OPEN" | "CL
   if (!election) return { ok: false, error: "Election not found." };
 
   if (status === "OPEN") {
+    if (election.status !== "DRAFT") {
+      return { ok: false, error: "Only draft elections can be opened. Closed elections cannot be reopened." };
+    }
+    if (election.endsAt && election.endsAt <= new Date()) {
+      return { ok: false, error: "The scheduled closing time has passed. Edit the draft and choose a future time." };
+    }
+    if (election.startsAt && election.endsAt && election.startsAt >= election.endsAt) {
+      return { ok: false, error: "The scheduled start time must be before the closing time." };
+    }
     if (election.positions.length === 0) {
       return { ok: false, error: "Add at least one position before opening." };
     }
@@ -124,9 +146,17 @@ export async function setElectionStatus(electionId: string, status: "OPEN" | "CL
     if (otherOpen > 0) {
       return { ok: false, error: "Another election is already open. Close it first." };
     }
+  } else if (election.status !== "OPEN") {
+    return { ok: false, error: "Only an open election can be manually closed." };
   }
 
-  await prisma.election.update({ where: { id: electionId }, data: { status } });
+  const updated = await prisma.election.updateMany({
+    where: { id: electionId, status: election.status },
+    data: { status },
+  });
+  if (updated.count === 0) {
+    return { ok: false, error: "The election status changed. Refresh and try again." };
+  }
   await audit(`ELECTION_${status}`, { userId: auth.session.sub, electionId, detail: election.title });
   revalidateAdmin();
   return { ok: true };
