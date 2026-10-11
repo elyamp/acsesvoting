@@ -92,7 +92,7 @@ export async function requestOtp(input: unknown): Promise<ActionResult> {
   const voter = await prisma.voter.findUnique({ where: { indexNumber } });
 
   if (!voter || voter.email.toLowerCase() !== email) {
-    return { ok: false, error: "No voter record matches this index number and email. Contact an admin." };
+    return { ok: false, error: "You are not an eligible voter. Your index number and school email are not listed together in the voter register. Contact an electoral official if you believe this is a mistake." };
   }
   if (voter.passwordHash) {
     return { ok: false, error: "This account is already activated. Please sign in." };
@@ -138,7 +138,7 @@ export async function activateAccount(input: unknown): Promise<ActionResult> {
   });
 
   if (!voter || voter.email.toLowerCase() !== email) {
-    return { ok: false, error: "No voter record matches this index number and email." };
+    return { ok: false, error: "You are not an eligible voter. Your index number and school email are not listed together in the voter register. Contact an electoral official if you believe this is a mistake." };
   }
   if (voter.passwordHash) {
     return { ok: false, error: "This account is already activated. Please sign in." };

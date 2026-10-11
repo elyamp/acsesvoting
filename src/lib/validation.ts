@@ -1,11 +1,14 @@
 import { z } from "zod";
+import { voterClassValues } from "@/lib/voter-classes";
 
 export const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters")
+  .min(12, "Password must be at least 12 characters")
   .max(128)
-  .regex(/[A-Za-z]/, "Password must contain a letter")
-  .regex(/[0-9]/, "Password must contain a number");
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
 
 export const indexNumberSchema = z
   .string()
@@ -80,7 +83,6 @@ export const candidateSchema = z.object({
       (v) =>
         v === "" ||
         /^\/uploads\/[a-zA-Z0-9._-]+$/.test(v) ||
-        /^\/api\/uploads\/[a-zA-Z0-9-]+\.(?:jpg|png|webp)$/i.test(v) ||
         /^https?:\/\/\S+$/i.test(v),
       "Photo must be an uploaded image or an http(s) URL"
     )
@@ -92,10 +94,12 @@ export const voterSchema = z.object({
   name: z.string().trim().min(2).max(120),
   indexNumber: indexNumberSchema,
   email: studentEmailSchema,
+  classGroup: z.enum(voterClassValues),
 });
 
 export const bulkVotersSchema = z.object({
-  csv: z.string().min(1, "Paste at least one line"),
+  csv: z.string().min(1, "Choose a file or paste at least one line").max(150_000),
+  classGroup: z.enum(voterClassValues),
 });
 
 export const adminUserSchema = z.object({

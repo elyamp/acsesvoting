@@ -2,14 +2,14 @@
 
 Secure online elections for the **Association of Computer Science and Engineering Students (ACSES)**.
 
-Built with Next.js 16 (App Router), Prisma + Neon PostgreSQL, JWT sessions (jose), bcrypt password hashing, and zod validation.
+Built with Next.js 16 (App Router), Prisma + SQLite for local development (Neon PostgreSQL when hosted), JWT sessions (jose), bcrypt password hashing, and zod validation.
 
 ## Features
 
 - **Students** sign in with their index number (`FCM.00.000.000.00`) + UMAT school email + password
-- **Admin pre-registration** — only students on the voter register can activate an account
+- **Class-organized voter register** — only pre-registered students can activate; import up to 300 students per class
 - **Email OTP activation** — first-time voters verify a 6-digit code sent to their school email before setting a password
-- **Anonymous ballots** — votes are stored with no link to the voter; only a `hasVoted` flag is kept, so nobody can trace how anyone voted
+- **Anonymous, signed ballots** — HMAC-signed ballot records have no voter ID; results and CSV exports are withheld if integrity checks fail
 - **One vote per student** — enforced atomically in a database transaction
 - **Admin console** — manage elections, positions, candidates, voters (single + bulk import), open/close voting, live results, CSV export, audit log
 - **Roles** — `ADMIN` (run elections, view results) and `SUPERADMIN` (additionally manages admins, can delete drafts and remove voters)
@@ -21,22 +21,20 @@ Built with Next.js 16 (App Router), Prisma + Neon PostgreSQL, JWT sessions (jose
 npm install
 ```
 
-Create a Neon project, copy its pooled connection string into `DATABASE_URL`, and its direct (unpooled) connection string into `DIRECT_URL`. Copy `.env.example` to `.env` and set:
+Copy `.env.example` to `.env`. The default database is a local SQLite file at `prisma/dev.db`; no hosted database is needed for local development. Set:
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Neon pooled PostgreSQL URL used by the app (`-pooler` hostname) |
-| `DIRECT_URL` | Neon direct PostgreSQL URL used by Prisma migrations |
-| `AUTH_SECRET` | Long random string used to sign session tokens (**required in production**) |
+| `DATABASE_URL` | Local SQLite database URL (default: `file:./dev.db`) |
+| `AUTH_SECRET` | Stable, long random string used to sign sessions and anonymous ballots; do not rotate while signed ballots exist |
 | `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD` | Credentials seeded for the first superadmin |
 | `ALLOWED_EMAIL_DOMAINS` | Comma-separated list of allowed school email domains (defaults to `st.umat.edu.gh`) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Optional; sends real OTP emails. Without SMTP, codes are printed to the server console in development. |
 
-Apply the initial PostgreSQL migration and seed the superadmin:
+Create the local database schema and seed the superadmin:
 
 ```bash
-npm run db:deploy
-npm run db:seed
+npm run db:setup
 ```
 
 Optional demo data (sample election + 4 activated voters with password `Vote1234!`):
@@ -48,6 +46,14 @@ SEED_DEMO=true npm run db:seed
 $env:SEED_DEMO="true"; npm run db:seed
 ```
 
+To replace the local development voter and ballot data with a labeled demo register (48 voters and signed demo ballots), run:
+
+```bash
+npm run db:seed-demo-register
+```
+
+This replaces voter, vote, OTP, and signed-ballot records in the local SQLite database. It refuses to run in production or against a non-local database. Do not run it against hosted election data.
+
 Start the app:
 
 ```bash
@@ -55,9 +61,13 @@ npm run dev        # development
 npm run build && npm start   # production
 ```
 
+Local development uses `prisma db push` rather than migrations. The existing PostgreSQL migration is retained for the future hosted setup.
+
 ## Deploying to Cloudflare Workers
 
 The app uses the OpenNext Cloudflare adapter. Candidate photos are stored in R2; the Next.js incremental cache uses a separate R2 bucket. Edit the bucket names and Worker name in `wrangler.jsonc` if you want different names.
+
+The current app configuration is for local SQLite development and is not ready to deploy. Before hosting, switch the Prisma datasource back to PostgreSQL, restore the Neon Prisma adapter in `src/lib/prisma.ts`, configure `DATABASE_URL` and `DIRECT_URL`, and apply the PostgreSQL migrations. Keep `AUTH_SECRET` stable so existing signed ballots remain verifiable.
 
 1. Create a Neon project. Put its **pooled** PostgreSQL URL (`-pooler` hostname) in `DATABASE_URL` and its **direct** URL in `DIRECT_URL` in `.env`. Apply the schema and seed the first superadmin from your computer:
 
@@ -103,11 +113,11 @@ This deployment does not copy `prisma/dev.db` or existing candidate images. If m
 ## Running an election
 
 1. Sign in at `/login` (Admin tab) as the superadmin.
-2. **Voters** → add students one by one or bulk import lines of `Full Name, Index Number, Email`. Index numbers use the format `FCM.00.000.000.00` and emails must be UMAT student emails (`cy-name1234@st.umat.edu.gh`).
+2. **Voters** → add students one by one with their class or bulk import up to 300 students for one class at a time. Upload `.xlsx` workbooks or `.csv` files; for workbooks, choose a worksheet, review or correct the detected header and name/index/email columns, and inspect row validation before importing. Invalid rows and duplicates within the file are skipped; existing register entries are reported in the import summary. Uploads are limited to 5 MB. You can also paste CSV rows in `Full Name, Index Number, Email` order. Supported classes are CE 1–4, CY 1–4, IS 1–4, and Robotics 1–4. Index numbers use the format `FCM.00.000.000.00`; email addresses must use an allowed school domain.
 3. **Elections** → create an election, then open its detail page to add positions (President, Secretary, Financial Secretary, Women's Commissioner, ...) and at least 2 candidates per position.
 4. Click **Open voting** (positions/candidates lock once open).
-5. Students go to `/activate`, receive a 6-digit code by email, set a password, and vote at `/vote`.
-6. Watch live collation under **Results**; export a CSV when done. Click **Close voting** to finalize — winners are then highlighted.
+5. Students go to `/activate`. Their index number and school email must match the voter register; they receive a 6-digit code, set a password, and vote at `/vote`.
+6. Watch live collation under **Results**. Results and CSV export are available only when signed ballot records pass integrity verification. Click **Close voting** to finalize — winners are then highlighted.
 
 ## Default accounts (dev seed)
 
@@ -122,5 +132,6 @@ This deployment does not copy `prisma/dev.db` or existing candidate images. If m
 - Configure SMTP so activation codes are emailed (never rely on console output)
 - Set `ALLOWED_EMAIL_DOMAINS` to your school's domain(s)
 - Serve over HTTPS (HSTS header is already configured)
-- Back up the Neon database and verify that migrations are applied
+- Keep `AUTH_SECRET` protected and stable; ballot signatures do not protect against a compromised application host or secret
+- Back up the database and verify that migrations are applied
 - Remove demo data by reseeding without `SEED_DEMO`

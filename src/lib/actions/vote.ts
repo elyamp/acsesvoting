@@ -1,13 +1,19 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, hasValidRequestOrigin } from "@/lib/auth";
 import { rateLimit } from "@/lib/ratelimit";
 import { audit } from "@/lib/audit";
+import { serializeBallot } from "@/lib/ballot-integrity";
 import { castBallotSchema, firstError } from "@/lib/validation";
 import type { ActionResult } from "./auth";
 
 export async function castBallot(input: unknown): Promise<ActionResult> {
+  if (!(await hasValidRequestOrigin())) {
+    return { ok: false, error: "Request origin is not trusted." };
+  }
+
   const session = await getSession();
   if (!session || session.kind !== "voter") {
     return { ok: false, error: "You must be signed in as a student to vote." };
@@ -71,6 +77,9 @@ export async function castBallot(input: unknown): Promise<ActionResult> {
     }
   }
 
+  const ballotId = randomUUID();
+  const signedBallot = serializeBallot(ballotId, electionId, selections);
+
   try {
     await prisma.$transaction(async (tx) => {
       // Atomic one-vote-per-voter guard
@@ -85,6 +94,14 @@ export async function castBallot(input: unknown): Promise<ActionResult> {
           positionId: s.positionId,
           candidateId: s.candidateId,
         })),
+      });
+      await tx.ballotRecord.create({
+        data: {
+          id: ballotId,
+          electionId,
+          payload: signedBallot.payload,
+          signature: signedBallot.signature,
+        },
       });
     });
   } catch (e) {

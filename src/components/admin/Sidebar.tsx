@@ -70,7 +70,7 @@ export default function Sidebar({ name, role }: { name: string; role: string }) 
   const visible = links.filter((l) => !l.superadminOnly || role === "SUPERADMIN");
 
   return (
-    <aside className="sticky top-0 z-30 border-b border-line bg-card/90 backdrop-blur-xl lg:flex lg:h-screen lg:w-72 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
+    <aside className="admin-sidebar sticky top-0 z-30 border-b border-line bg-card/90 backdrop-blur-xl lg:flex lg:h-screen lg:w-72 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
       <div className="flex items-center justify-between gap-3 px-4 py-3 lg:block lg:p-6">
         <Logo />
         <div className="flex items-center gap-2 lg:hidden">
@@ -86,7 +86,7 @@ export default function Sidebar({ name, role }: { name: string; role: string }) 
             <Link
               key={l.href}
               href={l.href}
-              className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`admin-nav-link flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors ${
                 active
                   ? "bg-accent text-white shadow-sm shadow-accent/20 dark:text-background"
                   : "text-muted hover:bg-surface hover:text-foreground"

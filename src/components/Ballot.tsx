@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { castBallot } from "@/lib/actions/vote";
-import { Alert, Button, Card } from "@/components/ui";
+import { Alert, Button, Card, Logo } from "@/components/ui";
 
 export type BallotPosition = {
   id: string;
@@ -111,49 +111,63 @@ export default function Ballot({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="ballot-layout space-y-8">
       {error && <Alert kind="error">{error}</Alert>}
-      {positions.map((position, i) => (
-        <section key={position.id}>
-          <div className="mb-3 flex items-baseline gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white dark:text-background">
-              {i + 1}
-            </span>
-            <h2 className="font-display text-2xl tracking-tight">{position.name}</h2>
-            <span className="text-xs text-muted">Select one candidate</span>
+      <div className="ballot-sheet">
+        <header className="ballot-masthead">
+          <div className="ballot-brand">
+            <Logo compact />
+            <div>
+              <div className="ballot-brand-name">ACSES · UMAT</div>
+              <div className="ballot-brand-caption">Association of Computer Science &amp; Engineering Students</div>
+            </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {position.candidates.map((c) => {
-              const selected = selections[position.id] === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() =>
-                    setSelections((s) => ({ ...s, [position.id]: selected ? "" : c.id }))
-                  }
-                  className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 text-left transition-all duration-200 ${
-                    selected
-                      ? "border-accent bg-accent-soft shadow-md ring-1 ring-accent"
-                      : "border-line bg-card shadow-card hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-pop"
-                  }`}
-                >
-                  {selected && (
-                    <div className="absolute right-0 top-0 rounded-bl-xl bg-accent px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white dark:text-background">
-                      Selected
-                    </div>
-                  )}
-                  <div className="flex w-full items-start justify-between gap-4">
-                    <div className="flex items-center gap-4">
+          <span className="ballot-official-mark">Official ballot</span>
+        </header>
+
+        <div className="ballot-title-block">
+          <div className="ballot-eyebrow">Student elections</div>
+          <h2 className="font-display text-3xl tracking-tight sm:text-4xl">{electionTitle}</h2>
+          <p>Mark one candidate for each position. Your selections are private and final.</p>
+        </div>
+
+        <div className="ballot-positions">
+          {positions.map((position, i) => (
+            <section key={position.id} className="ballot-position">
+              <div className="ballot-position-heading">
+                <span className="ballot-position-number">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <h3 className="font-display text-2xl tracking-tight">{position.name}</h3>
+                  <p>Select one candidate</p>
+                </div>
+                <span className="ballot-mark-note">ONE CHOICE</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {position.candidates.map((c) => {
+                  const selected = selections[position.id] === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() =>
+                        setSelections((s) => ({ ...s, [position.id]: selected ? "" : c.id }))
+                      }
+                      className={`ballot-candidate flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-200 ${
+                        selected
+                          ? "border-accent bg-accent-soft shadow-md ring-1 ring-accent"
+                          : "border-line bg-card hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-card"
+                      }`}
+                    >
                       {c.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={c.photoUrl}
                           alt=""
-                          className={`h-14 w-14 rounded-full object-cover shadow-sm transition-transform duration-300 ${selected ? 'scale-105 ring-4 ring-accent/20' : ''}`}
+                          className={`h-14 w-14 shrink-0 rounded-full object-cover shadow-sm transition-transform duration-300 ${selected ? "scale-105 ring-4 ring-accent/20" : ""}`}
                         />
                       ) : (
-                        <div className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-semibold transition-transform duration-300 ${selected ? "scale-105 bg-accent text-white ring-4 ring-accent/20 dark:text-background" : "bg-surface text-muted"}`}>
+                        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-semibold transition-transform duration-300 ${selected ? "scale-105 bg-accent text-white ring-4 ring-accent/20 dark:text-background" : "bg-surface text-muted"}`}>
                           {c.name
                             .split(" ")
                             .map((w) => w[0])
@@ -161,29 +175,39 @@ export default function Ballot({
                             .join("")}
                         </div>
                       )}
-                      <div>
-                        <div className={`font-bold tracking-tight ${selected ? 'text-accent-contrast' : 'text-foreground'}`}>{c.name}</div>
+                      <span className="min-w-0 flex-1">
+                        <span className={`block font-bold tracking-tight ${selected ? "text-accent-contrast" : "text-foreground"}`}>
+                          {c.name}
+                        </span>
                         {c.bio ? (
-                          <div className="mt-1 text-xs text-muted line-clamp-2">{c.bio}</div>
+                          <span className="mt-1 block text-xs text-muted line-clamp-2">{c.bio}</span>
                         ) : (
-                          <div className="mt-1 text-xs text-faint italic">No biography provided</div>
+                          <span className="mt-1 block text-xs italic text-faint">No biography provided</span>
                         )}
-                      </div>
-                    </div>
-                    <div className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${selected ? 'border-accent bg-accent' : 'border-line bg-transparent'}`}>
-                      {selected && (
-                        <svg viewBox="0 0 14 14" fill="none" className="h-3.5 w-3.5 text-white dark:text-background">
-                          <path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+                      </span>
+                      <span className={`ballot-selection-mark flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${selected ? "border-accent bg-accent" : "border-line"}`}>
+                        {selected && (
+                          <svg viewBox="0 0 14 14" fill="none" className="h-3.5 w-3.5 text-white dark:text-background">
+                            <path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+                {position.candidates.length === 0 && (
+                  <p className="text-sm text-muted">No candidates have been listed for this position.</p>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <footer className="ballot-paper-footer">
+          <span>ACSES · University of Mines and Technology</span>
+          <span>Keep your vote private</span>
+        </footer>
+      </div>
 
       <div className="sticky bottom-4 z-20 mt-12 animate-rise" style={{ animationDelay: '200ms' }}>
         <Card className="flex flex-wrap items-center justify-between gap-4 border border-accent/40 bg-card/95 p-4 shadow-pop backdrop-blur-xl sm:p-5">

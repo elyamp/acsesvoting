@@ -23,23 +23,17 @@ export default function PhotoUpload({
     fd.append("file", file);
     try {
       const res = await fetch("/api/uploads", { method: "POST", body: fd });
-      const data: unknown = await res.json().catch(() => null);
+      const payload: unknown = await res.json();
+      const data = payload !== null && typeof payload === "object"
+        ? payload as Record<string, unknown>
+        : null;
       if (!res.ok) {
-        const message =
-          typeof data === "object" &&
-          data !== null &&
-          "error" in data &&
-          typeof data.error === "string"
-            ? data.error
-            : "Upload failed.";
-        setError(message);
-        return;
+        setError(typeof data?.error === "string" ? data.error : "Upload failed.");
+      } else if (typeof data?.url !== "string") {
+        setError("The upload response was invalid.");
+      } else {
+        onChange(data.url);
       }
-      if (typeof data !== "object" || data === null || !("url" in data) || typeof data.url !== "string") {
-        setError("Upload returned an invalid response.");
-        return;
-      }
-      onChange(data.url);
     } catch {
       setError("Upload failed. Check your connection and try again.");
     } finally {

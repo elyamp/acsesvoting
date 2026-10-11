@@ -3,33 +3,35 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String     @id @default(cuid())
+  email        String     @unique
   passwordHash String
   name         String
-  role         String   @default("ADMIN") // SUPERADMIN | ADMIN
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  role         String     @default("ADMIN") // SUPERADMIN | ADMIN
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
   auditLogs    AuditLog[]
 }
 
 model Voter {
-  id           String   @id @default(cuid())
-  indexNumber  String   @unique // always starts with FCM
-  email        String   @unique
+  id           String     @id @default(cuid())
+  indexNumber  String     @unique // always starts with FCM
+  email        String     @unique
   name         String
+  classGroup   String     @default("UNASSIGNED")
   passwordHash String? // null until voter activates their account
   activatedAt  DateTime?
-  hasVoted     Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  hasVoted     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
   candidacy    Candidate?
   otp          OtpCode?
+
+  @@index([classGroup, indexNumber])
 }
 
 model OtpCode {
@@ -43,24 +45,25 @@ model OtpCode {
 }
 
 model Election {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  status      String   @default("DRAFT") // DRAFT | OPEN | CLOSED
-  startsAt    DateTime?
-  endsAt      DateTime?
-  createdAt   DateTime @default(now())
-  positions   Position[]
-  votes       Vote[]
-  auditLogs   AuditLog[]
+  id            String         @id @default(cuid())
+  title         String
+  description   String?
+  status        String         @default("DRAFT") // DRAFT | OPEN | CLOSED
+  startsAt      DateTime?
+  endsAt        DateTime?
+  createdAt     DateTime       @default(now())
+  positions     Position[]
+  votes         Vote[]
+  ballotRecords BallotRecord[]
+  auditLogs     AuditLog[]
 }
 
 model Position {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   name       String // e.g. President, Secretary
-  order      Int      @default(0)
+  order      Int         @default(0)
   electionId String
-  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  election   Election    @relation(fields: [electionId], references: [id], onDelete: Cascade)
   candidates Candidate[]
   votes      Vote[]
 
@@ -82,25 +85,36 @@ model Candidate {
 
 // Anonymous: intentionally has NO voterId so ballots cannot be traced back.
 model Vote {
-  id         String   @id @default(cuid())
-  electionId String
-  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  positionId String
-  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  electionId  String
+  election    Election   @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  positionId  String
+  position    Position   @relation(fields: [positionId], references: [id], onDelete: Cascade)
   candidateId String?
-  candidate  Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
 
   @@index([electionId, positionId])
 }
 
+model BallotRecord {
+  id         String   @id
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  payload    String
+  signature  String
+  createdAt  DateTime @default(now())
+
+  @@index([electionId, createdAt])
+}
+
 model AuditLog {
-  id        String   @id @default(cuid())
-  action    String // e.g. ELECTION_OPENED, VOTER_IMPORTED, RESULTS_VIEWED
-  detail    String?
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id         String    @id @default(cuid())
+  action     String // e.g. ELECTION_OPENED, VOTER_IMPORTED, RESULTS_VIEWED
+  detail     String?
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   electionId String?
-  election  Election? @relation(fields: [electionId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
+  election   Election? @relation(fields: [electionId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
 }

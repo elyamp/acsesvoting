@@ -35,12 +35,8 @@ export default async function VotePage() {
 
   return (
     <div className="hero-mesh relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none fixed left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] mix-blend-luminosity dark:opacity-[0.05]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="" className="h-[80vh] w-[80vh] object-contain grayscale" />
-      </div>
       <div className="grid-lines pointer-events-none absolute inset-0 opacity-70" aria-hidden />
-      <main className="relative mx-auto w-full max-w-4xl flex-1 px-4 py-8 lg:py-12">
+      <main className="relative z-10 mx-auto w-full max-w-4xl flex-1 px-4 py-8 lg:py-12">
         <header className="mb-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-card/80 p-5 shadow-card backdrop-blur-xl sm:p-6">
           <div className="flex items-start gap-4">
             <Logo compact />

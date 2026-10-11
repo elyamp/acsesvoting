@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { getSession } from "@/lib/auth";
+import { getSession, isSameOriginRequest } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -42,6 +44,11 @@ const SIGNATURES: { ext: string; mime: string; test: (b: Buffer) => boolean }[] 
 ];
 
 export async function POST(req: Request) {
+  const requestOrigin = req.headers.get("origin") ?? req.headers.get("referer");
+  if (!isSameOriginRequest(requestOrigin, null, new URL(req.url).host)) {
+    return NextResponse.json({ error: "Request origin is not trusted." }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session || session.kind !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -75,12 +82,19 @@ export async function POST(req: Request) {
   }
 
   const filename = `${randomUUID()}.${match.ext}`;
-  const { env } = getCloudflareContext();
-  await env.CANDIDATE_PHOTOS.put(filename, bytes, {
-    httpMetadata: { contentType: match.mime },
-  });
-
-  const url = `/api/uploads/${filename}`;
+  let url: string;
+  if (process.env.NODE_ENV === "production") {
+    const { env } = getCloudflareContext();
+    await env.CANDIDATE_PHOTOS.put(filename, bytes, {
+      httpMetadata: { contentType: match.mime },
+    });
+    url = `/api/uploads/${filename}`;
+  } else {
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    await mkdir(uploadsDir, { recursive: true });
+    await writeFile(path.join(uploadsDir, filename), bytes);
+    url = `/uploads/${filename}`;
+  }
   await audit("CANDIDATE_PHOTO_UPLOADED", { userId: session.sub, detail: url });
 
   return NextResponse.json({ url, mime: match.mime, bytes: file.size });

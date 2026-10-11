@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, isSameOriginRequest } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { verifyElectionBallots } from "@/lib/ballot-integrity";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, props: RouteContext<"/api/results/[electionId]/csv">) {
+export async function GET(req: Request, props: RouteContext<"/api/results/[electionId]/csv">) {
   const { electionId } = await props.params;
+  const requestOrigin = req.headers.get("origin") ?? req.headers.get("referer");
+  const requestHost = new URL(req.url).host;
+  if (!isSameOriginRequest(requestOrigin, null, requestHost)) {
+    return NextResponse.json({ error: "Request origin is not trusted." }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session || session.kind !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -23,6 +30,14 @@ export async function GET(_req: Request, props: RouteContext<"/api/results/[elec
   });
   if (!election) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const integrity = await verifyElectionBallots(electionId);
+  if (!integrity.verified) {
+    return NextResponse.json(
+      { error: integrity.issue ?? "CSV export blocked because ballot integrity verification failed." },
+      { status: 409 },
+    );
   }
 
   const totalVoters = await prisma.voter.count();

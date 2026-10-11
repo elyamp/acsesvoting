@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getSession, type SessionPayload } from "@/lib/auth";
+import { getSession, hasValidRequestOrigin, type SessionPayload } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import {
   electionSchema,
@@ -20,6 +20,10 @@ import type { ActionResult } from "./auth";
 async function requireAdmin(): Promise<
   { ok: true; session: SessionPayload } | { ok: false; error: string }
 > {
+  if (!(await hasValidRequestOrigin())) {
+    return { ok: false, error: "Request origin is not trusted." };
+  }
+
   const session = await getSession();
   if (!session || session.kind !== "admin") {
     return { ok: false, error: "Admin access required." };
@@ -30,6 +34,10 @@ async function requireAdmin(): Promise<
 async function requireSuperAdmin(): Promise<
   { ok: true; session: SessionPayload } | { ok: false; error: string }
 > {
+  if (!(await hasValidRequestOrigin())) {
+    return { ok: false, error: "Request origin is not trusted." };
+  }
+
   const session = await getSession();
   if (!session || session.kind !== "admin" || session.role !== "SUPERADMIN") {
     return { ok: false, error: "Superadmin access required." };
@@ -243,7 +251,7 @@ export async function addVoter(input: unknown): Promise<ActionResult> {
   if (!auth.ok) return auth;
   const parsed = voterSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const { name, indexNumber, email } = parsed.data;
+  const { name, indexNumber, email, classGroup } = parsed.data;
 
   if (!isAllowedEmailDomain(email)) {
     return { ok: false, error: `Email domain not allowed for ${email}` };
@@ -261,8 +269,8 @@ export async function addVoter(input: unknown): Promise<ActionResult> {
     };
   }
 
-  await prisma.voter.create({ data: { name, indexNumber, email } });
-  await audit("VOTER_ADDED", { userId: auth.session.sub, detail: `${name} (${indexNumber})` });
+  await prisma.voter.create({ data: { name, indexNumber, email, classGroup } });
+  await audit("VOTER_ADDED", { userId: auth.session.sub, detail: `${name} (${indexNumber}) · ${classGroup}` });
   revalidatePath("/admin/voters");
   return { ok: true };
 }
@@ -274,37 +282,47 @@ export async function bulkImportVoters(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 
   const lines = parsed.data.csv
+    .replace(/^\uFEFF/, "")
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
   if (lines.length === 0) return { ok: false, error: "No lines to import." };
-  if (lines.length > 2000) return { ok: false, error: "Import at most 2000 voters at a time." };
+  const header = parseCsvLine(lines[0]);
+  const hasHeader =
+    header?.length === 3 &&
+    /^(full\s+)?name$/i.test(header[0]) &&
+    /^index(?:\s+number)?$/i.test(header[1]) &&
+    /^(school\s+)?email$/i.test(header[2]);
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+  if (dataLines.length === 0) return { ok: false, error: "The CSV contains a header but no voter rows." };
+  if (dataLines.length > 300) return { ok: false, error: "Import at most 300 students at a time for one class." };
+  const classGroup = parsed.data.classGroup;
 
-  const rows: { name: string; indexNumber: string; email: string }[] = [];
+  const rows: { name: string; indexNumber: string; email: string; classGroup: string }[] = [];
   const errors: string[] = [];
   const seenIndex = new Set<string>();
   const seenEmail = new Set<string>();
 
-  for (const [i, line] of lines.entries()) {
-    const parts = line.split(",").map((p) => p.trim());
-    if (parts.length < 3) {
-      errors.push(`Line ${i + 1}: expected "Full Name, Index Number, Email"`);
+  for (const [i, line] of dataLines.entries()) {
+    const parts = parseCsvLine(line);
+    if (!parts || parts.length !== 3) {
+      errors.push(`Line ${i + (hasHeader ? 2 : 1)}: expected "Full Name, Index Number, Email"`);
       continue;
     }
     const [name, rawIndex, rawEmail] = parts;
-    const row = voterSchema.safeParse({ name, indexNumber: rawIndex, email: rawEmail });
+    const row = voterSchema.safeParse({ name, indexNumber: rawIndex, email: rawEmail, classGroup });
     if (!row.success) {
-      errors.push(`Line ${i + 1}: ${firstError(row.error)}`);
+      errors.push(`Line ${i + (hasHeader ? 2 : 1)}: ${firstError(row.error)}`);
       continue;
     }
     const { indexNumber, email } = row.data;
     if (!isAllowedEmailDomain(email)) {
-      errors.push(`Line ${i + 1}: email domain not allowed (${email})`);
+      errors.push(`Line ${i + (hasHeader ? 2 : 1)}: email domain not allowed (${email})`);
       continue;
     }
     if (seenIndex.has(indexNumber) || seenEmail.has(email)) {
-      errors.push(`Line ${i + 1}: duplicate within the import list`);
+      errors.push(`Line ${i + (hasHeader ? 2 : 1)}: duplicate within the import list`);
       continue;
     }
     seenIndex.add(indexNumber);
@@ -319,31 +337,84 @@ export async function bulkImportVoters(input: unknown): Promise<ActionResult> {
         { email: { in: rows.map((r) => r.email) } },
       ],
     },
-    select: { indexNumber: true, email: true },
+    select: { id: true, indexNumber: true, email: true, classGroup: true },
   });
-  const existingIndex = new Set(existing.map((e) => e.indexNumber));
-  const existingEmail = new Set(existing.map((e) => e.email));
-  const fresh = rows.filter((r) => {
-    if (existingIndex.has(r.indexNumber) || existingEmail.has(r.email)) {
-      errors.push(`${r.indexNumber}: already registered, skipped`);
-      return false;
-    }
-    return true;
-  });
+  const existingByIndex = new Map(existing.map((voter) => [voter.indexNumber, voter]));
+  const existingByEmail = new Map(existing.map((voter) => [voter.email, voter]));
+  const fresh: typeof rows = [];
+  const classUpdates = new Set<string>();
 
-  if (fresh.length > 0) {
-    await prisma.voter.createMany({ data: fresh });
+  for (const row of rows) {
+    const byIndex = existingByIndex.get(row.indexNumber);
+    const byEmail = existingByEmail.get(row.email);
+    if (byIndex && byEmail && byIndex.id === byEmail.id) {
+      if (byIndex.classGroup !== classGroup) classUpdates.add(byIndex.id);
+      continue;
+    }
+    if (byIndex || byEmail) {
+      errors.push(`${row.indexNumber}: index number or email is already linked to a different register entry, skipped`);
+      continue;
+    }
+    fresh.push(row);
   }
-  await audit("VOTERS_IMPORTED", {
-    userId: auth.session.sub,
-    detail: `${fresh.length} imported, ${errors.length} issues`,
-  });
+
+  await prisma.$transaction([
+    ...(fresh.length > 0
+      ? [prisma.voter.createMany({ data: fresh })]
+      : []),
+    ...(classUpdates.size > 0
+      ? [prisma.voter.updateMany({
+          where: { id: { in: [...classUpdates] } },
+          data: { classGroup },
+        })]
+      : []),
+  ]);
+
+  const updated = classUpdates.size;
+  if (fresh.length > 0 || updated > 0) {
+    await audit("VOTERS_IMPORTED", {
+      userId: auth.session.sub,
+      detail: `${fresh.length} added, ${updated} class assignments updated for ${classGroup}, ${errors.length} issues`,
+    });
+  } else {
+    await audit("VOTERS_IMPORTED", {
+      userId: auth.session.sub,
+      detail: `No changes for ${classGroup}, ${errors.length} issues`,
+    });
+  }
   revalidatePath("/admin/voters");
 
   return {
     ok: true,
-    summary: `Imported ${fresh.length} voter(s).${errors.length ? " Issues:\n" + errors.join("\n") : ""}`,
+    summary: `Added ${fresh.length} voter(s); updated ${updated} existing class assignment(s) for ${classGroup}.${errors.length ? "\nIssues:\n" + errors.join("\n") : ""}`,
   };
+}
+
+function parseCsvLine(line: string): string[] | null {
+  const fields: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (quoted && line[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (char === "," && !quoted) {
+      fields.push(field.trim());
+      field = "";
+    } else {
+      field += char;
+    }
+  }
+
+  if (quoted) return null;
+  fields.push(field.trim());
+  return fields;
 }
 
 export async function removeVoter(voterId: string): Promise<ActionResult> {

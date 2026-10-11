@@ -13,7 +13,7 @@ export default async function LoginPage() {
   if (session?.kind === "voter") redirect("/vote");
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to cast your ballot or manage elections">
+    <AuthShell title="Sign in" subtitle="Enter the credentials associated with your account.">
       <LoginForm />
     </AuthShell>
   );

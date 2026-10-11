@@ -3,7 +3,7 @@ import type { ReactNode, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTML
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-line bg-card/80 backdrop-blur-xl shadow-card transition-shadow hover:shadow-lg ${className.includes("p-") || className.includes("p-0") ? className : `p-6 ${className}`}`}
+      className={`ui-card relative overflow-hidden rounded-2xl border border-line bg-card/80 backdrop-blur-xl shadow-card ${className.includes("p-") || className.includes("p-0") ? className : `p-6 ${className}`}`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent dark:from-white/2 pointer-events-none" />
       <div className="relative z-10">{children}</div>
@@ -83,7 +83,7 @@ export function Alert({ kind, children }: { kind: "error" | "success" | "info"; 
 export function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   const long = typeof value === "string" && value.length > 14;
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-line bg-card/90 backdrop-blur-xl shadow-card">
+    <div className="stat-card relative overflow-hidden rounded-2xl border border-line bg-card/90 backdrop-blur-xl shadow-card">
       <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-to-br from-accent/20 to-transparent blur-3xl" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
       <div className="relative z-10 p-6 sm:p-7">
@@ -110,7 +110,7 @@ export function PageHeader({ title, sub, children }: { title: string; sub?: stri
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">{title}</h1>
+        <h1 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl">{title}</h1>
         {sub && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{sub}</p>}
       </div>
       {children && <div className="flex items-center gap-3">{children}</div>}

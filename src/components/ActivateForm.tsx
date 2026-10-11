@@ -52,8 +52,8 @@ export default function ActivateForm() {
   }
 
   return (
-    <Card className="w-full max-w-md p-6 sm:p-8">
-      <div className="mb-5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+    <Card className="auth-card w-full max-w-md p-4 sm:p-5">
+      <div className="mb-3 flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
         <span className={step === 1 ? "text-accent" : ""}>1 · Identity</span>
         <span className="text-line">/</span>
         <span className={step === 2 ? "text-accent" : ""}>2 · Password</span>
@@ -61,21 +61,21 @@ export default function ActivateForm() {
       <h2 className="mb-1 text-lg font-semibold">
         {step === 1 ? "Verify your identity" : "Set your password"}
       </h2>
-      <p className="mb-6 text-sm leading-relaxed text-muted">
+      <p className="mb-4 text-sm leading-relaxed text-muted">
         {step === 1
           ? "Enter the index number and school email the electoral committee registered for you."
           : `Enter the code sent to ${email} and choose a password.`}
       </p>
 
       {step === 1 ? (
-        <form onSubmit={handleRequestOtp} className="space-y-4">
+        <form onSubmit={handleRequestOtp} className="space-y-3">
           <div>
             <Label htmlFor="a-index">Index Number</Label>
             <Input
               id="a-index"
               value={indexNumber}
               onChange={(e) => setIndexNumber(e.target.value.toUpperCase())}
-              placeholder="FCM.21.101.203.05"
+              placeholder="Index Number"
               required
             />
           </div>
@@ -86,7 +86,7 @@ export default function ActivateForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="cy-name1234@st.umat.edu.gh"
+              placeholder="School Email"
               required
             />
           </div>
@@ -96,7 +96,7 @@ export default function ActivateForm() {
           </Button>
         </form>
       ) : (
-        <form onSubmit={handleActivate} className="space-y-4">
+        <form onSubmit={handleActivate} className="space-y-3">
           {info && <Alert kind="info">{info}</Alert>}
           <div>
             <Label htmlFor="a-code">6-digit code</Label>
@@ -104,7 +104,7 @@ export default function ActivateForm() {
               id="a-code"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="123456"
+              placeholder="6-digit code"
               inputMode="numeric"
               autoComplete="one-time-code"
               required
@@ -117,7 +117,7 @@ export default function ActivateForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min 8 chars, with a letter and a number"
+              placeholder="New password"
               autoComplete="new-password"
               required
             />
@@ -129,6 +129,7 @@ export default function ActivateForm() {
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Confirm password"
               autoComplete="new-password"
               required
             />
@@ -153,7 +154,7 @@ export default function ActivateForm() {
         </form>
       )}
 
-      <p className="mt-4 text-center text-sm text-muted">
+      <p className="mt-3 text-center text-sm text-muted">
         Already activated?{" "}
         <Link href="/login" className="font-medium text-accent-contrast hover:opacity-80">
           Sign in
