@@ -17,8 +17,11 @@ if (!rawUrl) {
   throw new Error("DATABASE_URL must be configured.");
 }
 
-// Neon's serverless driver does not support channel_binding — strip it if present.
-const connectionString = rawUrl.replace(/[&?]channel_binding=[^&]*/g, "").replace(/\?&/, "?");
+// Neon's Vercel integration appends channel_binding=require which breaks
+// the serverless driver. Strip it cleanly from the query string.
+const url = new URL(rawUrl);
+url.searchParams.delete("channel_binding");
+const connectionString = url.toString();
 
 const adapter = new PrismaNeon({ connectionString });
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
