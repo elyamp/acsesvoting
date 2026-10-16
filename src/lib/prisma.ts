@@ -12,10 +12,13 @@ if (typeof globalThis.WebSocket === "undefined") {
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
+const rawUrl = process.env.DATABASE_URL;
+if (!rawUrl) {
   throw new Error("DATABASE_URL must be configured.");
 }
+
+// Neon's serverless driver does not support channel_binding — strip it if present.
+const connectionString = rawUrl.replace(/[&?]channel_binding=[^&]*/g, "").replace(/\?&/, "?");
 
 const adapter = new PrismaNeon({ connectionString });
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
