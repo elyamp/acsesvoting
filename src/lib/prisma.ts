@@ -12,19 +12,17 @@ if (typeof globalThis.WebSocket === "undefined") {
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-const rawUrl = process.env.DATABASE_URL;
-if (!rawUrl) {
-  throw new Error("DATABASE_URL must be configured.");
-}
+const rawUrl = process.env.DATABASE_URL ?? "";
 
 // Neon's Vercel integration appends channel_binding=require which breaks
 // the serverless driver. Strip it cleanly from the query string.
-const url = new URL(rawUrl);
-url.searchParams.delete("channel_binding");
-const connectionString = url.toString();
+// During build time rawUrl may be empty — the adapter is only used at runtime.
+const connectionString = rawUrl
+  ? (() => { const u = new URL(rawUrl); u.searchParams.delete("channel_binding"); return u.toString(); })()
+  : "";
 
-const adapter = new PrismaNeon({ connectionString });
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+const adapter = connectionString ? new PrismaNeon({ connectionString }) : undefined;
+export const prisma = globalForPrisma.prisma ?? new PrismaClient(adapter ? { adapter } : undefined);
 
 // Cache the client instance across hot-reloads in development.
 // In production (Vercel), each function instance is already isolated.
