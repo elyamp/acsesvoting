@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     // Check which tables exist in the database
     const tables = await prisma.$queryRaw<{ tablename: string }[]>`
-      SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;
+      SELECT tablename::text FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;
     `;
 
     // Check migration history
