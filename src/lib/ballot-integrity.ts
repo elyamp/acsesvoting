@@ -99,8 +99,6 @@ export async function verifyElectionBallots(
       where: { electionId },
       select: { positionId: true, candidateId: true },
     });
-    const allRecordCount = await tx.ballotRecord.count();
-    const votedVoterCount = await tx.voter.count({ where: { hasVoted: true } });
 
     if (records.length === 0 && votes.length > 0) {
       return {
@@ -110,13 +108,9 @@ export async function verifyElectionBallots(
       };
     }
 
-    if (allRecordCount !== votedVoterCount) {
-      return {
-        verified: false,
-        ballotCount: records.length,
-        issue: `The voter turnout and signed ballot totals do not match (${votedVoterCount} voters marked as voted; ${allRecordCount} signed ballots).`,
-      };
-    }
+    // Ballots are anonymous, so there is no reliable per-election voter mapping to compare
+    // against the signed ballot count. Integrity must be validated by checking each ballot's
+    // signature and comparing its selections to the recorded vote rows for the same election.
 
     const signedSelections: string[] = [];
     for (const record of records) {

@@ -33,6 +33,9 @@ export async function sendOtpEmail(to: string, name: string, code: string) {
 
   const t = getTransporter();
   if (!t) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SMTP_HOST must be configured to send activation emails in production.");
+    }
     console.log(`\n[DEV EMAIL] OTP for ${to}: ${code}\n`);
     return;
   }

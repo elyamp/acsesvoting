@@ -1,0 +1,168 @@
+ACSES ONLINE ELECTIONS PLATFORM
+System Description and Approval Overview
+
+Prepared: 13 October 2026
+
+1. PURPOSE
+
+The ACSES Online Elections Platform is a web application built to support elections for the Association of Computer Science and Engineering Students (ACSES) at the University of Mines and Technology (UMaT). It provides an online process for managing an eligible-voter register, preparing elections and ballots, authenticating student voters, recording votes, and presenting election results to authorized officials.
+
+This document describes the software currently implemented and its intended election workflow. It is submitted to support institutional review and a decision on whether the system may proceed to further testing, a supervised pilot, or operational use.
+
+2. WHAT HAS BEEN BUILT
+
+The application includes:
+
+- A student-facing website with account activation, sign-in, ballot selection, vote confirmation, and post-vote screens.
+- An administrator console for managing voters, elections, positions, candidates, voting schedules, results, and administrative accounts.
+- A voter-register workflow for adding students individually or importing a class list from CSV or Excel files.
+- Six-digit, email-based one-time passcode (OTP) verification for first-time voter account activation.
+- A ballot-submission process that checks election status, validates selections, and prevents a voter from submitting more than once.
+- Anonymous ballot records signed with a keyed HMAC, alongside vote-count records that do not include a voter ID.
+- Result-integrity checks that compare signed ballot selections with recorded vote selections. Results and CSV exports are withheld when verification fails.
+- Administrative activity logging, including actions such as managing elections and importing voters. Vote choices are not included in the audit log.
+- Role-based access for administrators and superadministrators.
+- Rate limits on sign-in, activation-code, and voting requests; server-side input validation; and signed, HTTP-only session cookies.
+
+3. HOW THE ELECTION PROCESS WORKS
+
+A. Election preparation
+
+1. An authorized administrator signs in to the administration area.
+2. Eligible voters are entered individually or imported by class. Imports support CSV and Excel workbook files, with worksheet/column selection and row validation before import.
+3. The administrator creates an election, defines its start and end times (or chooses manual closing), and adds positions and candidates.
+4. The platform requires at least one position and at least two candidates for each position before an election can be opened.
+5. Once voting opens, the election's positions and candidates are locked against modification. Only one election can be open at a time.
+
+B. Student eligibility and activation
+
+1. A student must already be present in the voter register.
+2. The student provides their registered index number and school email address.
+3. The platform checks that the details match a voter-register entry and sends a six-digit OTP to that email address.
+4. The student verifies the code and creates a password. The code expires and failed attempts are limited.
+5. The student then signs in using their index number, school email, and password.
+
+C. Voting
+
+1. An authenticated, activated voter can access the ballot while an eligible election is open.
+2. The voter selects one candidate for each position, reviews the complete ballot, and confirms submission.
+3. The server rechecks the election schedule, candidate and position membership, ballot completeness, and whether the voter has already voted.
+4. In a database transaction, the system claims the voter's one-vote status and records the vote selections and signed anonymous ballot. If a concurrent or repeated submission is detected, it is rejected.
+5. The voter is shown a confirmation screen. The ballot cannot be changed after submission.
+
+D. Closing and results
+
+1. An administrator may close an open election manually, or it may close when its scheduled end time is reached.
+2. The ballot interface checks election status and locks when voting is no longer open. The server also independently rejects submissions after closure.
+3. Administrators can view results and export them as CSV only when integrity verification succeeds.
+4. Verification checks ballot signatures and verifies that the selections in signed ballot records agree with the stored vote selections. If verification fails, results and export are withheld for investigation.
+
+4. PRIVACY AND SECURITY DESIGN
+
+- The Vote data model does not contain a voter ID. Voter participation status is maintained separately from the vote-selection rows.
+- Each ballot record contains the election identifier, ballot selections, and a keyed HMAC signature. The signature is intended to reveal alteration of the signed ballot record; it is not a substitute for independent election oversight or host/database security.
+- The application uses bcrypt password hashing, signed HTTP-only session cookies, request-origin checks for state-changing operations, rate limits, and schema validation.
+- Administrative roles restrict access to election-management functions. Superadministrators have additional account-management and voter/draft-election deletion privileges.
+- Audit entries record administrative and election actions without recording student vote choices.
+- Email delivery must be configured for real activation messages. HTTPS and production secrets must be configured before deployment for operational use.
+
+5. TECHNICAL OVERVIEW
+
+- Web framework: Next.js 16 with the App Router and React.
+- Language and validation: TypeScript and Zod.
+- Data access: Prisma ORM.
+- Database: PostgreSQL, with Neon as the documented hosted provider.
+- Authentication: signed JWT-based sessions using HTTP-only cookies; password hashing with bcrypt.
+- Email: SMTP configuration for OTP delivery, including Gmail/Google Workspace SMTP.
+- Candidate-photo storage: Vercel Blob in production; local filesystem during development. Uploaded candidate photos are public.
+- Hosting target for controlled testing: Vercel with Neon PostgreSQL and Vercel Blob.
+
+6. CURRENT IMPLEMENTATION STATUS AND LIMITATIONS
+
+The application has been adapted for a Vercel-hosted test deployment using the standard Next.js Node.js runtime, Neon PostgreSQL, Vercel Blob, and configurable SMTP. PostgreSQL migrations are included. ESLint, Prisma schema validation, and a local Next.js production build have passed. These checks do not verify the live Vercel project, Neon database, Blob store, or Gmail/Workspace email delivery. No hosted deployment is claimed by this document.
+
+Before testing, the operator must create/configure the Neon database and Vercel Blob store, apply migrations, create a unique administrator account, set a strong stable authentication/signing secret, configure SMTP credentials, and set the correct public application URL and allowed email domains. Missing SMTP configuration is an error for production activation attempts.
+
+The local rate limiter is held in application memory and is not shared between separate Vercel function instances. It is suitable only for controlled testing and is not a production abuse-prevention guarantee. Real activation emails should initially be tested with mailboxes controlled by the project team or with recipients' permission. Use test voter data and a clearly labeled test election; do not conduct a live election until the institution authorizes it and the full deployment, email delivery, backups/recovery, access controls, and election procedures have been tested and approved.
+
+This application supports election administration and vote collation; it does not itself constitute an independent security certification, legal determination, or institutional election policy. The institution should decide how voter eligibility is approved, who controls administrator accounts, how results are formally certified, and how disputes or outages are handled.
+
+7. VERCEL TEST-HOSTING PROCEDURE
+
+Complete these steps for a controlled test deployment. Use a separate test database and test election; do not import live voter records unless the institution has authorized that use.
+
+A. Create the required services
+
+1. Create a Neon PostgreSQL project for testing. Obtain both the pooled connection URL and the direct, non-pooled connection URL.
+2. Create or connect a Vercel Blob store for candidate photos. Candidate photos uploaded to this store are public images.
+3. Prepare a Gmail or Google Workspace account for sending activation emails. Where Google requires it, enable 2-Step Verification and create an App Password. Do not put a regular Gmail password in the application.
+
+B. Configure the database and initial administrator
+
+1. In the project root, copy `.env.example` to `.env` and fill in local values. Do not commit `.env` or share its secrets.
+2. Set `DATABASE_URL` to the Neon pooled URL and `DIRECT_URL` to the Neon direct URL.
+3. Set `SUPERADMIN_EMAIL` and a unique, strong `SUPERADMIN_PASSWORD` for the first administrator.
+4. Set `AUTH_SECRET` to a unique random secret of at least 32 bytes. Keep it private and stable; rotating it invalidates existing sessions and prevents verification of previously signed ballots.
+5. Set local database and administrator variables only for the test Neon database, then run:
+
+   `npm run db:deploy`
+
+   `npm run db:seed`
+
+   The first command applies the PostgreSQL migrations. The second creates the initial superadministrator. Do not set `SEED_DEMO=true` for a hosted database.
+
+C. Connect the repository to Vercel
+
+1. Push the reviewed project changes to the Git provider used by the project. Import that repository into Vercel and select the Next.js framework preset.
+2. Use `npm run build` as the build command. The project build generates Prisma Client and builds the Next.js application.
+3. Create or link the Vercel Blob store to the Vercel project so the project receives `BLOB_READ_WRITE_TOKEN`.
+4. Add the following Vercel Project Environment Variables to the environment being tested (Preview or Production). Never paste secret values into this document, source code, or a public issue:
+
+   `DATABASE_URL` — Neon pooled PostgreSQL URL.
+
+   `DIRECT_URL` — Neon direct, non-pooled PostgreSQL URL.
+
+   `AUTH_SECRET` — unique random secret; use the same value for an environment for as long as its signed ballots must remain verifiable.
+
+   `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD` — only needed in Vercel if running the seed command there; normally seed the database from a trusted local machine instead.
+
+   `ALLOWED_EMAIL_DOMAINS` — normally `st.umat.edu.gh`.
+
+   `SMTP_HOST` — `smtp.gmail.com`.
+
+   `SMTP_PORT` — `587` for STARTTLS or `465` for TLS.
+
+   `SMTP_USER` — full Gmail/Workspace email address.
+
+   `SMTP_PASS` — Google App Password when required.
+
+   `SMTP_FROM` — sender address authorized for that mail account.
+
+   `NEXT_PUBLIC_APP_URL` — HTTPS URL of the Vercel deployment being tested.
+
+   `BLOB_READ_WRITE_TOKEN` — Vercel Blob read/write token (normally added when the Blob store is connected).
+
+5. Deploy to a Vercel Preview environment first. If Vercel reports a failed build, resolve the build issue before proceeding. Do not use a Production domain for a live election without approval.
+
+D. Verify the test deployment
+
+1. Visit the deployed HTTPS URL and sign in using the administrator account seeded into the test database.
+2. Create a clearly labeled test election and add only authorized test voters and candidate data.
+3. Upload a candidate photo and confirm it persists and loads after a fresh visit.
+4. Request voter activation for a mailbox controlled by the project team (or a recipient who has agreed to test). Confirm the email arrives, the code expires as expected, and activation/sign-in work.
+5. Test the full test election workflow: ballot validation, successful vote, rejection of a repeat vote, election closure, integrity-checked results, and CSV export.
+6. Record any errors, check Vercel function logs, and verify Neon backups and recovery before considering any broader pilot.
+
+The application allows voter-list and candidate-photo uploads up to 4 MB. The current in-memory rate limiter is not shared across serverless function instances, so it is suitable only for controlled testing and is not a production abuse-prevention guarantee. Do not send unsolicited activation emails: use test addresses you control or obtain the recipients' permission.
+
+8. REQUEST FOR REVIEW AND APPROVAL
+
+The ACSES Elections Platform is submitted for review of its purpose, workflow, privacy approach, administrative controls, and readiness requirements. Approval is requested to proceed with the next step authorized by the reviewing body, such as:
+
+- approving further technical and procedural review;
+- authorizing a test or supervised pilot using non-production/demo data; or
+- specifying the conditions that must be met before any live election use.
+
+No live election should be conducted until the institution has reviewed the system, confirmed the production deployment and operational safeguards, tested the complete election workflow, and formally authorized its use.
+
+END OF DOCUMENT

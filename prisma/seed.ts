@@ -4,8 +4,14 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const superEmail = process.env.SUPERADMIN_EMAIL || "superadmin@acses.org";
-  const superPassword = process.env.SUPERADMIN_PASSWORD || "ChangeMe123!";
+  const superEmail = process.env.SUPERADMIN_EMAIL;
+  const superPassword = process.env.SUPERADMIN_PASSWORD;
+  if (!superEmail || !superPassword) {
+    throw new Error("Set SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD before running the seed.");
+  }
+  if (process.env.NODE_ENV === "production" && process.env.SEED_DEMO === "true") {
+    throw new Error("Demo data cannot be seeded in production.");
+  }
 
   const existing = await prisma.user.findUnique({ where: { email: superEmail } });
   if (!existing) {
@@ -17,7 +23,7 @@ async function main() {
         passwordHash: await bcrypt.hash(superPassword, 12),
       },
     });
-    console.log(`Seeded superadmin: ${superEmail} / ${superPassword}`);
+    console.log(`Seeded superadmin: ${superEmail}`);
   } else {
     console.log(`Superadmin already exists: ${superEmail}`);
   }

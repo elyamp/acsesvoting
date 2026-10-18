@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+    color: #000;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 14pt;
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  h2 {
+    font-size: 13pt;
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  h3 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 18px;
+    margin-bottom: 6px;
+  }
+  h4 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 14px;
+    margin-bottom: 4px;
+  }
+  .header-block {
+    margin-bottom: 24px;
+  }
+  .header-block p {
+    margin: 2px 0;
+  }
+  .notice {
+    border-left: 4px solid #000;
+    padding: 8px 12px;
+    margin: 16px 0;
+    font-style: italic;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 11pt;
+  }
+  th {
+    background-color: #d9d9d9;
+    border: 1px solid #000;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: bold;
+  }
+  td {
+    border: 1px solid #000;
+    padding: 6px 10px;
+    vertical-align: top;
+  }
+  ol {
+    margin: 8px 0 8px 20px;
+  }
+  ol li {
+    margin-bottom: 6px;
+  }
+  ul {
+    margin: 8px 0 8px 20px;
+  }
+  ul li {
+    margin-bottom: 4px;
+  }
+  .section-title {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 22px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .signature-block {
+    margin-top: 40px;
+  }
+  .signature-line {
+    margin-top: 40px;
+    border-top: 1px solid #000;
+    width: 260px;
+    padding-top: 4px;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #000;
+    margin: 20px 0;
+  }
+  .center {
+    text-align: center;
+  }
+  strong.commitment {
+    font-weight: bold;
+  }
+  .print-btn {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 13pt;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    border-radius: 4px;
+    z-index: 999;
+  }
+  .print-btn:hover {
+    background: #333;
+  }
+  @media print {
+    .print-btn { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">⬇ Save as PDF</button>
+
+<h1>UNIVERSITY OF MINES AND TECHNOLOGY (UMaT)</h1>
+<h2>Association of Computer Science and Engineering Students (ACSES)</h2>
+
+<hr>
+
+<div class="header-block">
+  <p><strong>DATE:</strong> &nbsp;&nbsp; 13 October 2026</p>
+  <p><strong>TO:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The President, ACSES / Head of Department, Computer Science and Engineering</p>
+  <p><strong>FROM:</strong> &nbsp; The Development Team, Department of Computer Science and Engineering</p>
+  <p><strong>SUBJECT:</strong> PROPOSAL FOR REVIEW AND SUPERVISED PILOT OF THE ACSES ONLINE ELECTIONS PLATFORM</p>
+</div>
+
+<hr>
+
+<p class="section-title">1. Introduction</p>
+
+<p>Every year, the election of ACSES student officers relies on printed ballots, physical queues, manual counting, and the availability of students on campus at a specific time. This process is slow, expensive, and vulnerable to counting errors and disputes. Absentee students — those off campus for fieldwork, industry attachment, or other academic obligations — are effectively excluded.</p>
+
+<p>The Department of Computer Science and Engineering has designed and built a complete web-based platform to address these problems. The <strong>ACSES Online Elections Platform</strong> allows eligible students to vote securely from any device, at any time within the voting window, while giving election officials full administrative control from a single dashboard.</p>
+
+<p>This proposal provides the institution with a clear account of what the system is, how it works, how it protects the integrity and secrecy of votes, what stage of development it is at, and what is needed before it can be used in a real election. It is submitted to seek approval to proceed to the next stage: a supervised review and pilot using demonstration data only.</p>
+
+<p class="section-title">2. The Problem This System Solves</p>
+
+<p>The current paper-based election process has the following documented shortcomings:</p>
+
+<table>
+  <tr>
+    <th>Problem</th>
+    <th>Impact</th>
+  </tr>
+  <tr>
+    <td>Physical queues and fixed voting location</td>
+    <td>Excludes students who are off campus or otherwise unavailable at the set time</td>
+  </tr>
+  <tr>
+    <td>Manual ballot counting</td>
+    <td>Prone to human error and disputed results</td>
+  </tr>
+  <tr>
+    <td>No audit trail of administrative decisions</td>
+    <td>Difficult to investigate complaints or irregularities after the fact</td>
+  </tr>
+  <tr>
+    <td>High cost of printing and logistics</td>
+    <td>Unnecessary expenditure of association funds</td>
+  </tr>
+  <tr>
+    <td>No tamper detection</td>
+    <td>A ballot can be altered after the fact with no way to detect it</td>
+  </tr>
+</table>
+
+<p>The ACSES Online Elections Platform is designed to eliminate each of these problems systematically.</p>
+
+<p class="section-title">3. What the System Does</p>
+
+<p>The platform has two sides: the <strong>student portal</strong> and the <strong>administration dashboard</strong>. Both are fully built and working.</p>
+
+<h3>3.1 Student Portal</h3>
+
+<p>Students access the platform from any phone or computer. The workflow is:</p>
+
+<ol>
+  <li><strong>Account Activation</strong> — A student enters their registered index number and university email address. The system confirms these match the official voter register and sends a six-digit one-time passcode (OTP) to the student's school email. The student enters the code and sets a password. The code expires after a short time, and the number of wrong attempts is capped to prevent guessing attacks.</li>
+  <li><strong>Sign In</strong> — After activation, the student signs in using their index number, email and password.</li>
+  <li><strong>Voting</strong> — The student sees the ballot, selects one candidate per position, reviews the full ballot on a summary screen, and confirms. The system checks, at the moment of submission, that the election is still open, that all choices are valid, and that the student has not already voted. The vote is saved and the student is marked as having voted in a single atomic operation — making a double vote technically impossible, even if a student clicks twice or submits from two devices simultaneously.</li>
+  <li><strong>Confirmation</strong> — The student sees a confirmation screen. The submitted ballot cannot be changed.</li>
+</ol>
+
+<h3>3.2 Administration Dashboard</h3>
+
+<p>Election officials manage the entire process from a secure administration area:</p>
+
+<ul>
+  <li><strong>Voter Register Management</strong> — Add voters individually or import an entire class list from a CSV or Excel file. The system previews every row and flags errors before saving, so a bad import cannot corrupt the register.</li>
+  <li><strong>Election Setup</strong> — Create elections, define positions (e.g. President, Secretary), add candidates with photos and short biographies, and set the opening and closing schedule.</li>
+  <li><strong>Live Monitoring</strong> — See voter turnout and election status in real time during voting.</li>
+  <li><strong>Results and Integrity Check</strong> — After an election closes, the system runs an automatic integrity check before results are shown. If the check passes, administrators can view detailed results and export them as a CSV file. If the check fails, results are withheld automatically until the cause is investigated.</li>
+  <li><strong>Audit Log</strong> — Every significant administrative action is recorded with a timestamp and the identity of the administrator who performed it. The log never records how any student voted.</li>
+</ul>
+
+<h3>3.3 Built-In Election Rules</h3>
+
+<p>The system enforces election rules at the software level, not by relying on administrators to follow procedures manually:</p>
+
+<ul>
+  <li>An election cannot be opened unless every position has at least two candidates.</li>
+  <li>Positions and candidates are locked once voting opens and cannot be changed mid-election.</li>
+  <li>Only one election can be open at any time.</li>
+  <li>Once a student has voted, further voting attempts are rejected by the server even if the student bypasses the screen.</li>
+  <li>An election can close automatically at a scheduled time, or be closed manually at any point.</li>
+</ul>
+
+<p class="section-title">4. How the System Protects Vote Secrecy and Integrity</p>
+
+<p>The secrecy and integrity of votes is the most critical property of any election system. The platform addresses this at every layer.</p>
+
+<h3>4.1 Votes Cannot Be Traced to Voters</h3>
+<p>The database holds two completely separate records: one that records <em>that</em> a student voted, and another that records <em>what</em> was voted for. The vote record contains no student identifier. An administrator can confirm a student participated, but cannot determine whom that student voted for. This separation is enforced by the database schema itself and cannot be bypassed through the application.</p>
+
+<h3>4.2 Ballots Are Sealed Against Tampering</h3>
+<p>Every ballot is stored with a digital seal — a keyed cryptographic signature (HMAC). If anyone with direct database access alters a vote after it is cast, the seal will no longer match. The integrity check run at results time detects this and withholds the results automatically. The seal does not hide votes; it proves they have not been changed since they were cast.</p>
+
+<h3>4.3 Passwords Are Stored Safely</h3>
+<p>Voter and administrator passwords are hashed using the bcrypt algorithm with an appropriate cost factor. The plain-text password is never stored anywhere and cannot be recovered by the system owners.</p>
+
+<h3>4.4 Sessions Are Protected</h3>
+<p>Login sessions use signed JSON Web Tokens stored in HTTP-only, same-site cookies. These cannot be read by browser scripts, and requests that modify data are only accepted from the platform's own domain.</p>
+
+<h3>4.5 Brute-Force Attacks Are Limited</h3>
+<p>The number of login attempts, OTP submission attempts, and vote submissions from a single source in a given time window is capped. This makes automated guessing attacks impractical.</p>
+
+<h3>4.6 All Input Is Validated on the Server</h3>
+<p>Every piece of data submitted by a user is validated by the server independently of what the browser sends, preventing manipulation of requests.</p>
+
+<p class="section-title">5. Technology Summary</p>
+
+<p>The system is built with widely used, industry-standard open-source technologies:</p>
+
+<table>
+  <tr>
+    <th>Component</th>
+    <th>Technology</th>
+  </tr>
+  <tr><td>Framework</td><td>Next.js 16 (React, TypeScript)</td></tr>
+  <tr><td>Database</td><td>PostgreSQL (Neon serverless)</td></tr>
+  <tr><td>ORM</td><td>Prisma</td></tr>
+  <tr><td>Authentication</td><td>JWT (jose), bcrypt</td></tr>
+  <tr><td>File Storage</td><td>Vercel Blob</td></tr>
+  <tr><td>Email Delivery</td><td>SMTP (configurable)</td></tr>
+  <tr><td>Input Validation</td><td>Zod</td></tr>
+  <tr><td>Hosting</td><td>Vercel</td></tr>
+</table>
+
+<p>These are the same technologies used in production systems at large organisations worldwide. The choice of these tools means the system can be maintained, extended, or audited by any competent web developer.</p>
+
+<p class="section-title">6. Current Status</p>
+
+<p>The platform is <strong>fully functional</strong>. The complete election workflow — from importing voters, setting up elections, activating accounts, casting votes, checking integrity, and viewing results — has been implemented and tested in a working deployment.</p>
+
+<p>The system is currently hosted on Vercel and is accessible for review at any time.</p>
+
+<p>What is not yet in place for a <strong>live election</strong> is described in the next section.</p>
+
+<p class="section-title">7. Work Remaining Before a Live Election</p>
+
+<p>In the interest of full transparency, the following must be completed and independently verified before any real election is held:</p>
+
+<ol>
+  <li><strong>Production email delivery</strong> — Activation codes must reach students reliably. A working email service must be connected and tested end-to-end.</li>
+  <li><strong>Ballot-sealing key management</strong> — The secret key used to seal ballots must be generated, stored securely, and never changed after any ballots are cast.</li>
+  <li><strong>Upgrade of the rate limiter</strong> — The current limiter works within a single server instance. If the platform runs on multiple servers simultaneously, a shared rate-limiting service is required.</li>
+  <li><strong>Backup and recovery procedures</strong> — Procedures for database backup and recovery from failure must be documented and tested.</li>
+  <li><strong>Role and access control testing</strong> — Administrator permissions must be tested in the live environment to confirm that each role can only perform its permitted actions.</li>
+  <li><strong>Full end-to-end pilot</strong> — A complete mock election must be run with demonstration data, from voter import through to certified results, under supervision.</li>
+</ol>
+
+<p>None of these items affect the correctness of what has been built. They are production-readiness steps required before any real votes are trusted to the system.</p>
+
+<p class="section-title">8. What the Institution Must Decide</p>
+
+<p>The platform manages the mechanics of an election. Certain decisions are matters of institutional policy and must be made by the institution, not the system:</p>
+
+<ol>
+  <li>Who approves and provides the official list of eligible voters before each election.</li>
+  <li>Who is granted administrator and superadministrator access.</li>
+  <li>How results are formally certified and publicly announced.</li>
+  <li>How election disputes and any technical outages are handled.</li>
+  <li>Who from the institution will supervise the pilot.</li>
+</ol>
+
+<p>The platform is a tool. Its legitimacy depends on the institutional processes that govern its use.</p>
+
+<p class="section-title">9. Request</p>
+
+<p>We respectfully request that the institution approve one or more of the following steps:</p>
+
+<ol>
+  <li><strong>Technical and procedural review</strong> of the system by persons appointed by the institution.</li>
+  <li><strong>A supervised pilot</strong> using demonstration data only — no real students, no real election — to allow the institution to observe the full process from start to finish.</li>
+  <li><strong>A written statement</strong> of the conditions that must be met before the system may be used in any live ACSES election.</li>
+</ol>
+
+<p>Our commitment is stated clearly: <strong>no live election will be conducted on this system until every condition set by the institution has been met, independently verified, and formally signed off.</strong></p>
+
+<p class="section-title">10. Conclusion</p>
+
+<p>The ACSES Online Elections Platform is a complete, working system that addresses the practical shortcomings of paper-based student elections: it removes the need for physical presence, eliminates manual counting errors, makes the process auditable, and enforces the secrecy and integrity of every vote through technical means rather than convention.</p>
+
+<p>We are aware that production readiness requires further work, and we are prepared to complete that work under the institution's guidance. We are not asking for trust based on assurances alone — we are asking for the opportunity to demonstrate the system under supervision so that the institution can evaluate it on its merits.</p>
+
+<p>We thank the President and the Department for their time and consideration.</p>
+
+<br>
+<p>Yours faithfully,</p>
+
+<div class="signature-block">
+  <div class="signature-line"></div>
+  <p>[Name of Lead Developer / Team Representative]<br>
+  [Position]<br>
+  Association of Computer Science and Engineering Students (ACSES)<br>
+  Department of Computer Science and Engineering<br>
+  University of Mines and Technology (UMaT)</p>
+</div>
+
+</body>
+</html>

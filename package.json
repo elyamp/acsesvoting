@@ -5,15 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:cloudflare": "opennextjs-cloudflare build",
-    "preview": "opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare deploy",
     "start": "next start",
     "lint": "eslint",
-    "db:push": "prisma db push",
-    "db:setup": "prisma db push && prisma db seed",
-    "db:seed-demo-register": "tsx prisma/seed-demo-register.ts",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv",
+    "db:setup": "prisma migrate dev && prisma db seed",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
@@ -28,8 +22,10 @@
     }
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "@prisma/adapter-neon": "^6.19.3",
     "@prisma/client": "^6.19.3",
+    "@vercel/blob": "^2.8.1",
     "bcryptjs": "^3.0.3",
     "exceljs": "^4.4.0",
     "jose": "^6.2.12",
@@ -41,7 +37,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.19.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
@@ -53,7 +48,6 @@
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5",
-    "wrangler": "^4.147.0"
+    "typescript": "^5"
   }
 }

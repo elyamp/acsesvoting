@@ -313,7 +313,7 @@ export function BulkImportForm() {
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("Spreadsheet is too large. Keep each upload below 5 MB.");
+      setError("Spreadsheet is too large. Keep each upload at or below 4 MB.");
       input.value = "";
       return;
     }
@@ -343,7 +343,7 @@ export function BulkImportForm() {
             <div>
               <Label htmlFor="voter-csv-file">Excel or CSV file</Label>
               <Input key={fileInputKey} id="voter-csv-file" type="file" accept=".xlsx,.csv" onChange={handleFileChange} className="file:mr-3 file:rounded-lg file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-accent-contrast" />
-              <p className="mt-1 text-xs text-faint">Excel .xlsx or .csv · up to 5 MB · maximum 300 students per class</p>
+              <p className="mt-1 text-xs text-faint">Excel .xlsx or .csv · up to 4 MB · maximum 300 students per class</p>
             </div>
             <Textarea
               value={csv}

@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { put } from "@vercel/blob";
 import { getSession, isSameOriginRequest } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_BYTES = 4 * 1024 * 1024;
 
 // Signature -> canonical extension. We trust the bytes, not the client's
 // declared filename or content-type, so the stored extension is always safe.
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "The selected file is empty." }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Image must be 5 MB or smaller." }, { status: 400 });
+    return NextResponse.json({ error: "Image must be 4 MB or smaller." }, { status: 400 });
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
@@ -84,11 +84,12 @@ export async function POST(req: Request) {
   const filename = `${randomUUID()}.${match.ext}`;
   let url: string;
   if (process.env.NODE_ENV === "production") {
-    const { env } = getCloudflareContext();
-    await env.CANDIDATE_PHOTOS.put(filename, bytes, {
-      httpMetadata: { contentType: match.mime },
+    const blob = await put(filename, bytes, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: match.mime,
     });
-    url = `/api/uploads/${filename}`;
+    url = blob.url;
   } else {
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadsDir, { recursive: true });

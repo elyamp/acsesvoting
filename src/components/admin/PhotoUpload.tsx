@@ -93,7 +93,7 @@ export default function PhotoUpload({
             </button>
           )}
         </div>
-        <p className="mt-1 text-xs text-faint">JPEG, PNG or WebP · up to 5 MB</p>
+        <p className="mt-1 text-xs text-faint">JPEG, PNG or WebP · up to 4 MB</p>
         {error && <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
       </div>
 

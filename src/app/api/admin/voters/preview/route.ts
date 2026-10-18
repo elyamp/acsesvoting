@@ -6,7 +6,7 @@ import type { VoterSpreadsheetRow } from "@/lib/voter-import";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_NONEMPTY_ROWS = 400;
 const MAX_WORKSHEET_ROWS = 100_000;
 const MAX_COLUMNS = 100;
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   }
   if (file.size === 0) return Response.json({ error: "The selected file is empty." }, { status: 400 });
   if (file.size > MAX_FILE_BYTES) {
-    return Response.json({ error: "Spreadsheet must be 5 MB or smaller." }, { status: 413 });
+    return Response.json({ error: "Spreadsheet must be 4 MB or smaller." }, { status: 413 });
   }
 
   const extension = file.name.toLowerCase().split(".").pop();

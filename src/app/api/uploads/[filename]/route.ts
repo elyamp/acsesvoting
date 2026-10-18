@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { get } from "@vercel/blob";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -38,13 +38,13 @@ export async function GET(_request: Request, context: RouteContext<"/api/uploads
     });
   }
 
-  const object = await getCloudflareContext().env.CANDIDATE_PHOTOS.get(filename);
+  const object = await get(filename, { access: "public" });
   if (!object) return new Response("Not found", { status: 404 });
 
-  return new Response(object.body, {
+  return new Response(object.stream, {
     headers: {
       "Cache-Control": "public, max-age=31536000, immutable",
-      "Content-Type": IMAGE_TYPES[match[2].toLowerCase()],
+      "Content-Type": object.blob.contentType || IMAGE_TYPES[match[2].toLowerCase()],
       "X-Content-Type-Options": "nosniff",
     },
   });
